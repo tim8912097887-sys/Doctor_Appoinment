@@ -17,6 +17,7 @@
         "moduleResolution": "nodenext",
         "esModuleInterop": true,         // CommonJS/ES module interop
         "resolveJsonModule": true,  
-        "forceConsistentCasingInFileNames": true
+        "forceConsistentCasingInFileNames": true,
+        "isolatedModules": true
     }
 }
