@@ -18,6 +18,13 @@ const EnvSchema = z.object({
     .positive("PORT must be a positive integer")
     .max(65535, "PORT cannot exceed 65535")
     .default(3000),
+    DATABASE_URL: z
+      .string()
+      .startsWith("postgresql://", "URL must begin with postgresql://")
+      .regex(
+        /^postgresql:\/\/(?:([^:]+)(?::([^@]+))?@)?([^:\/]+)(?::(\d+))?(?:\/([^?]+))?(?:\?(.+))?$/,
+        "String is not a valid PostgreSQL connection URI"
+      )
     // SALT: z.coerce.number({
     //   error: "Salt must be a number",
     // })
