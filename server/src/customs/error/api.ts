@@ -31,6 +31,8 @@ export class ApiError extends Error {
         this.isOperational = isOperational;
         // Retain the property and instance name of the ApiError
         Object.setPrototypeOf(this, new.target.prototype);
+        // Capture the stack trace, excluding the constructor from the trace
+        Error.captureStackTrace(this, this.constructor);
     }
 }
 

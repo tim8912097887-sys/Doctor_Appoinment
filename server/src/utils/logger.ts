@@ -9,21 +9,21 @@ export const logger = winston.createLogger({
         new transports.Console(),
         new transports.File({
             level: "error",
-            filename: "../logs/error.log"
+            filename: "src/logs/error.log"
         }),
         new transports.File({
             level: "info",
-            filename: "../logs/combine.log"
+            filename: "src/logs/combine.log"
         }),
     ],
     exceptionHandlers: [
         new transports.File({
-            filename: "../logs/exception.log"
+            filename: "src/logs/exception.log"
         })
     ],
     rejectionHandlers: [
         new transports.File({
-            filename: "../logs/rejection.log"
+            filename: "src/logs/rejection.log"
         })
     ]
 })

@@ -1,6 +1,17 @@
 {
     "extends": "./tsconfig.base.json",
     "compilerOptions": {
+        // Path aliases
+        "baseUrl": ".",
+        "paths": {
+            "@/*": ["src/*"],
+            "@utils/*": ["src/utils/*"],
+            "@configs/*": ["src/configs/*"],
+            "@customs/*": ["src/customs/*"],
+            "@db/*": ["src/db/*"],
+            "@routes/*": ["src/routes/*"],
+            "@middleware/*": ["src/middleware/*"]
+        },
         // File Location
         "rootDir": "src",
         "outDir": "dist",
