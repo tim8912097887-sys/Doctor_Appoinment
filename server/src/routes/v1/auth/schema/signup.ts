@@ -8,11 +8,15 @@ export const CreateUserSchema = z.object({
     firstName: z.string()
         .min(2, "First name must be at least 2 characters")
         .max(50, "First name too long")
+        .toLowerCase()
+        .regex(/^[A-Za-z0-9]+$/,"First Name only allow A-Z,a-z and 0-9")
         .transform(stripDangerousChars), // Sanitize
     
     lastName: z.string()
         .min(2, "Last name must be at least 2 characters")
         .max(50, "Last name too long")
+        .regex(/^[A-Za-z0-9]+$/,"First Name only allow A-Z,a-z and 0-9")
+        .toLowerCase()
         .transform(stripDangerousChars), // Sanitize
     email: z.email("Invalid Email").trim().toLowerCase(),
     password: z.string()

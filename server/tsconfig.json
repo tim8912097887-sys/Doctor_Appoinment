@@ -13,7 +13,7 @@
             "@middleware/*": ["src/middleware/*"]
         },
         // File Location
-        "rootDir": "src",
+        "rootDir": ".",
         "outDir": "dist",
         // Emit Options
         "sourceMap": true,              // Generate source maps
@@ -23,10 +23,11 @@
         "skipLibCheck": true,          // Skip type checking of declaration files
         
     },
-    "include": ["src/**/*.ts"],
-    "exclude": ["node_modules",
-    "dist",
-    "coverage",
-    "**/*.spec.ts",
-    "**/*.test.ts"]
+    "include": ["src/**/*.ts","test/**/*"],
+    "exclude": ["node_modules"]
+    // ,
+    // "dist",
+    // "coverage",
+    // "**/*.spec.ts",
+    // "**/*.test.ts"a
 }
