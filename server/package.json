@@ -5,7 +5,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/server.ts",
+    "dev": "tsx watch --env-file=.env.dev src/server.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate"
   },
@@ -14,19 +14,28 @@
   "license": "ISC",
   "packageManager": "pnpm@10.26.1",
   "dependencies": {
+    "axios": "^1.13.6",
+    "bcrypt-ts": "^8.0.1",
+    "cookie-parser": "^1.4.7",
     "dotenv": "^17.3.1",
     "drizzle-orm": "^0.45.1",
     "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
     "morgan": "^1.10.1",
     "pg": "^8.19.0",
+    "resend": "^6.9.3",
+    "validator": "^13.15.26",
     "winston": "^3.19.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@types/cookie-parser": "^1.4.10",
     "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/morgan": "^1.9.10",
     "@types/node": "^25.3.3",
     "@types/pg": "^8.18.0",
+    "@types/validator": "^13.15.10",
     "drizzle-kit": "^0.31.9",
     "ts-node": "^10.9.2",
     "tsx": "^4.21.0",

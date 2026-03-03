@@ -1,4 +1,4 @@
-import { boolean, date, integer, pgEnum, pgTable, text, uuid, varchar } from "drizzle-orm/pg-core";
+import { boolean, integer, pgEnum, pgTable, text, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 
 export const roleEnum = pgEnum('user_role', ['admin', 'user', 'doctor']);
 
@@ -8,10 +8,11 @@ export const users = pgTable('users',{
     lastName: varchar("last_name",{ length: 50 }).notNull(),
     email: varchar("email",{ length: 60 }).unique("unique_email").notNull(),
     password: text("password").notNull(),
+    loginAttempts: integer("login_attempts").default(0).notNull(),
+    lockExpired: timestamp("lock_expired",{ withTimezone: true,mode: 'date' }),
     isVerified: boolean("is_verified").default(false).notNull(),
-    verifiedToken: text("verified_token").default(""),
-    resetToken: text("reset_token").default(""),
-    resetTokenExpired: date("reset_token_expired"),
-    tokenVersion: integer("token_version").default(0).notNull(),
+    tokenVersion: integer("token_version").default(1).notNull(),
     role: roleEnum('role').default('user').notNull(),
+    createdAt: timestamp("created_at",{ withTimezone: true,mode: 'date' }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at",{ withTimezone: true,mode: 'date' }).defaultNow().notNull()
 })
