@@ -138,7 +138,7 @@ export default class AuthService {
         const result = await findAndVerifyToken(verifyData.userId,hashedToken);
         if(!result) {
             logger.warn(`Verify Account: userid: ${verifyData.userId} with token: ${verifyData.token} is not valid`);
-            throw new UnauthorizedError("Invalid Token");
+            throw new UnauthorizedError("Invalid or Expired Token");
         }
         return;
     }
@@ -191,7 +191,7 @@ export default class AuthService {
         const result = await updatePassword(userId,hashedToken,hashedPassword);
         if(!result.success) {
             logger.warn(`Reset Password: user with ${userId} or token: ${token} not exist`);
-            throw new BadRequestError("Invalid or expired token");
+            throw new BadRequestError("Invalid or Expired token");
         }
         return;
     }
@@ -201,8 +201,8 @@ export default class AuthService {
         const result = await findUserById(userId);
         if(!result || result.tokenVersion !== tokenVersion) {
             if(!result) logger.warn(`Refresh Token: user with ${userId} not exist`);
-            if(result.tokenVersion !== tokenVersion) logger.warn(`Refresh Token: user with ${userId} invalid token version`);
-            throw new BadRequestError("Invalid or expired token");
+            if(result && result.tokenVersion !== tokenVersion) logger.warn(`Refresh Token: user with ${userId} invalid token version`);
+            throw new UnauthorizedError("Invalid or Expired token");
         }
         return;
     }

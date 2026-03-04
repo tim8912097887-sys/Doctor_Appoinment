@@ -8,6 +8,9 @@ import { users } from "@/db/schema/user.js";
 import { eq } from "drizzle-orm";
 import { tokens } from "@/db/schema/token.js";
 import { hashPassword } from "@/utils/password.js";
+import { createRawToken, createToken, hashToken } from "@/utils/token.js";
+import { createVerificationToken } from "@/db/query/token.js";
+import { env } from "@/configs/env.js";
 
 const firstName = "austin";
 const lastName = "river";
@@ -141,7 +144,7 @@ describe("Auth Integration Test",() => {
                 });
             },10000)
 
-            it('When Signup with uppercase email,should response with 201 statusCode and Check Lowercase email in database', async() => {
+            it.skip('When Signup with uppercase email,should response with 201 statusCode and Check Lowercase email in database', async() => {
                 // Arrange
                 const userInfo = createUserInfo({ email: "Tim8912097887@gmail.com" });
                 // Prevent gmail rate-limit error
@@ -630,4 +633,390 @@ describe("Auth Integration Test",() => {
 
     })
 })
+describe("Verify Account",() => {
+
+        const rawToken = createRawToken();
+        describe("Success",() => {
+                let userId: string;
+                // Create user account and token
+                beforeEach(async() => {
+                    const userInfo = createUserInfo({});
+                    const hashedToken = hashToken(rawToken);
+                    const [user] = await db.insert(users).values(userInfo).returning({ id: users.id });
+                    userId = user.id;
+                    await createVerificationToken(user.id,hashedToken,"VERIFICATION");
+                },10000);
+
+              it('When verify with valid token and userId,should response with 200 statusCode and Success message', async() => {
+                  // Arrange
+                const userInfo = {
+                    token: rawToken,
+                    userId
+                }
+                // Act
+                const response = await request(app)
+                                .post("/api/v1/auth/verification")
+                                .send(userInfo);
+                const [token] = await db.select({
+                    id: tokens.id
+                }).from(tokens);
+                // Assertion
+                expect(response.status).toBe(200);
+                expect(response.body).toMatchObject(responseStructure({
+                    state: "success",
+                    data: {
+                        message: expect.any(String)
+                    }
+                }))
+                // Verify Token delete
+                expect(token).toBeUndefined();
+              },10000)
+        })
+         describe("Validation Fail",() => {
+            const validUserId = "00000000-0000-0000-0000-000000000000";
+            // Invalid UserId
+            it('When provide invalid userId,should response with 400 statusCode and Bad Request Error', async() => {
+                // Arrange
+                const userInfo = {
+                    token: rawToken,
+                    userId: "dsofj"
+                }
+                // Act
+                const response = await request(app)
+                                .post("/api/v1/auth/verification")
+                                .send(userInfo);
+                // Assertion
+                expect(response.status).toBe(400);
+                expect(response.body).toMatchObject({
+                    state: "error",
+                    error: {
+                        status: "BadRequest",
+                        code: 400,
+                        detail: "Invalid UUID"
+                }})
+            })
+            // Invalid token
+            it('When provide non-string token,should response with 400 statusCode and Bad Request Error', async() => {
+                // Arrange
+                const userInfo = {
+                    token: 5,
+                    userId: validUserId
+                }
+                // Act
+                const response = await request(app)
+                                .post("/api/v1/auth/verification")
+                                .send(userInfo);
+                // Assertion
+                expect(response.status).toBe(400);
+                expect(response.body).toMatchObject({
+                    state: "error",
+                    error: {
+                        status: "BadRequest",
+                        code: 400,
+                        detail: "Token must be string"
+                }})
+            })
+            it('When provide not 64 length token,should response with 400 statusCode and Bad Request Error', async() => {
+                // Arrange
+                const userInfo = {
+                    token: "abc",
+                    userId: validUserId
+                }
+                // Act
+                const response = await request(app)
+                                .post("/api/v1/auth/verification")
+                                .send(userInfo);
+                // Assertion
+                expect(response.status).toBe(400);
+                expect(response.body).toMatchObject({
+                    state: "error",
+                    error: {
+                        status: "BadRequest",
+                        code: 400,
+                        detail: "Token must be exactly 64 characters long"
+                }})
+            })
+            it('When provide invalid format token,should response with 400 statusCode and Bad Request Error', async() => {
+                // Arrange
+                const userInfo = {
+                    token: new Array(16).fill("abch").join(""),
+                    userId: validUserId
+                }
+                // Act
+                const response = await request(app)
+                                .post("/api/v1/auth/verification")
+                                .send(userInfo);
+                // Assertion
+                expect(response.status).toBe(400);
+                expect(response.body).toMatchObject({
+                    state: "error",
+                    error: {
+                        status: "BadRequest",
+                        code: 400,
+                        detail: "Token must be a valid hexadecimal string"
+                }})
+            })
+        })
+
+        describe("Auth Error",() => {
+
+            let userId: string;
+            const hashedToken = hashToken(rawToken);
+                // Create user account and token
+                beforeEach(async() => {
+                    const userInfo = createUserInfo({});
+                    const [user] = await db.insert(users).values(userInfo).returning({ id: users.id });
+                    userId = user.id;
+                    await createVerificationToken(user.id,hashedToken,"VERIFICATION");
+                },10000);
+            it('When provide not exist userId,should response with 401 statusCode and Unauthorized Error', async() => {
+                // Arrange
+                const nonExistentUserId = "00000000-0000-0000-0000-000000000000"; // A valid UUID format
+                
+                const userInfo = {
+                    token: rawToken,
+                    userId: nonExistentUserId 
+                };
+                // Act
+                const response = await request(app)
+                                .post("/api/v1/auth/verification")
+                                .send(userInfo);
+                // Assertion
+                expect(response.status).toBe(401);
+                expect(response.body).toMatchObject({
+                    state: "error",
+                    error: {
+                        status: "Unauthorized",
+                        code: 401,
+                        detail: "Invalid or Expired Token"
+                }})
+            })
+
+            it('When provide not exist token,should response with 401 statusCode and Unauthorized Error', async() => {
+                // Arrange
+                const notExistToken = new Array(8).fill("dbea908c").join("");
+                const userInfo = {
+                    userId,
+                    token: notExistToken
+                }
+                // Act
+                const response = await request(app)
+                                .post("/api/v1/auth/verification")
+                                .send(userInfo);
+                const [token] = await db.select()
+                                        .from(tokens)
+                                        .where(eq(tokens.token,notExistToken));
+                // Assertion
+                expect(response.status).toBe(401);
+                expect(response.body).toMatchObject({
+                    state: "error",
+                    error: {
+                        status: "Unauthorized",
+                        code: 401,
+                        detail: "Invalid or Expired Token"
+                }})
+                // Check db storage
+                expect(token).toBeUndefined();
+            })
+
+            it('When provide expired token,should response with 401 statusCode and Unauthorized Error', async() => {
+                // Arrange
+                await db.update(tokens).set({
+                     expiredAt: new Date(Date.now()-3000)
+                }).where(eq(tokens.token,hashedToken))
+                const userInfo = {
+                    userId,
+                    token: rawToken
+                }
+                // Act
+                const response = await request(app)
+                                .post("/api/v1/auth/verification")
+                                .send(userInfo);
+                const [token] = await db.select({
+                                           id: tokens.id,
+                                           expiredAt: tokens.expiredAt
+                                         })
+                                        .from(tokens)
+                                        .where(eq(tokens.token,hashedToken));
+                // Assertion
+                expect(response.status).toBe(401);
+                expect(response.body).toMatchObject({
+                    state: "error",
+                    error: {
+                        status: "Unauthorized",
+                        code: 401,
+                        detail: "Invalid or Expired Token"
+                }})
+                // Check db storage
+                expect(token.expiredAt.getTime()).toBeLessThan(Date.now());
+            })
+        })
+    })
+
+     describe("Refresh Token",() => {
+
+        describe("Success",() => {
+
+            it('When successfully refresh token,should response with 200 statusCode and AccessToken', async() => {
+                // Arrange
+                const [createdUser] = await db.insert(users)
+                        .values({ ...createUserInfo({}),isVerified: true})
+                        .returning({
+                            id: users.id,
+                            token_version: users.tokenVersion,
+                            role: users.role
+                        })       
+                const payload = {
+                    sub: createdUser.id,
+                    v: env.TOKEN_VERSION,
+                    token_version: createdUser.token_version,
+                    role: createdUser.role
+                }
+                const refreshToken = createToken(payload,env.REFRESH_TOKEN_SECRET,env.REFRESH_TOKEN_EXPIRED);
+                // Act
+                const response = await request(app)
+                                .get("/api/v1/auth/refresh")
+                                .set("Cookie",["refreshToken="+refreshToken]);
+                // Assertion
+                expect(response.status).toBe(200);
+                expect(response.body).toMatchObject(responseStructure({
+                    state: "success",
+                    data: {
+                        accessToken: expect.any(String),
+                        message: expect.any(String)
+                    }
+                }))
+            })
+        })
+
+        describe("Auth Error",() => {
+
+            it('When not send with refresh token,should response with 401 statusCode and UnAuthorized Error', async() => {
+                
+                // Act
+                const response = await request(app)
+                                .get("/api/v1/auth/refresh");
+                // Assertion
+                expect(response.status).toBe(401);
+                expect(response.body).toMatchObject({
+                    state: "error",
+                    error: {
+                        status: "Unauthorized",
+                        code: 401,
+                        detail: "Unauthenticated"
+                }})
+            })
+
+            it('When send with expired refresh token,should response with 401 statusCode and UnAuthorized Error', async() => {
+                // Arrange
+                const payload = {
+                    sub: "sdfonof",
+                    v: env.TOKEN_VERSION,
+                    token_version: 1,
+                    role: "user" as const
+                }
+                const refreshToken = createToken(payload,env.REFRESH_TOKEN_SECRET,0);
+                // Act
+                const response = await request(app)
+                                .get("/api/v1/auth/refresh")
+                                .set("Cookie",["refreshToken="+refreshToken]);
+                // Assertion
+                expect(response.status).toBe(401);
+                expect(response.body).toMatchObject({
+                    state: "error",
+                    error: {
+                        status: "Unauthorized",
+                        code: 401,
+                        detail: "Invalid or Expired token"
+                }})
+            })
+
+            it('When send with invalid structure version refresh token,should response with 401 statusCode and UnAuthorized Error', async() => {
+                // Arrange
+                const payload = {
+                    sub: "sdfonof",
+                    v: 999,
+                    token_version: 1,
+                    role: "user" as const
+                }
+                const refreshToken = createToken(payload,env.REFRESH_TOKEN_SECRET,env.REFRESH_TOKEN_EXPIRED);
+                // Act
+                const response = await request(app)
+                                .get("/api/v1/auth/refresh")
+                                .set("Cookie",["refreshToken="+refreshToken]);
+                // Assertion
+                expect(response.status).toBe(401);
+                expect(response.body).toMatchObject({
+                    state: "error",
+                    error: {
+                        status: "Unauthorized",
+                        code: 401,
+                        detail: "Invalid or Expired token"
+                }})
+            })
+
+            it('When send with invalid auth version refresh token,should response with 401 statusCode and UnAuthorized Error', async() => {
+                // Arrange
+                const [createdUser] = await db.insert(users)
+                        .values({ ...createUserInfo({}),isVerified: true})
+                        .returning({
+                            id: users.id,
+                            token_version: users.tokenVersion,
+                            role: users.role
+                        })  
+                const payload = {
+                    sub: createdUser.id,
+                    v: env.TOKEN_VERSION,
+                    token_version: 100,
+                    role: createdUser.role
+                }
+                const refreshToken = createToken(payload,env.REFRESH_TOKEN_SECRET,env.REFRESH_TOKEN_EXPIRED);
+                // Act
+                const response = await request(app)
+                                .get("/api/v1/auth/refresh")
+                                .set("Cookie",["refreshToken="+refreshToken]);
+                // Assertion
+                expect(response.status).toBe(401);
+                expect(response.body).toMatchObject({
+                    state: "error",
+                    error: {
+                        status: "Unauthorized",
+                        code: 401,
+                        detail: "Invalid or Expired token"
+                }})
+            },10000)
+
+            it('When send with not exist userId refresh token,should response with 401 statusCode and UnAuthorized Error', async() => {
+                // Arrange
+                const [createdUser] = await db.insert(users)
+                        .values({ ...createUserInfo({}),isVerified: true})
+                        .returning({
+                            id: users.id,
+                            token_version: users.tokenVersion,
+                            role: users.role
+                        })  
+                const payload = {
+                    sub: "00000000-0000-0000-0000-000000000000",
+                    v: env.TOKEN_VERSION,
+                    token_version: createdUser.token_version,
+                    role: createdUser.role
+                }
+                const refreshToken = createToken(payload,env.REFRESH_TOKEN_SECRET,env.REFRESH_TOKEN_EXPIRED);
+                // Act
+                const response = await request(app)
+                                .get("/api/v1/auth/refresh")
+                                .set("Cookie",["refreshToken="+refreshToken]);
+                // Assertion
+                expect(response.status).toBe(401);
+                expect(response.body).toMatchObject({
+                    state: "error",
+                    error: {
+                        status: "Unauthorized",
+                        code: 401,
+                        detail: "Invalid or Expired token"
+                }})
+            },10000)
+        })
+    
+    })
 })

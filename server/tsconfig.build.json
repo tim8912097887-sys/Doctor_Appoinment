@@ -1,0 +1,31 @@
+{
+    "extends": "./tsconfig.base.json",
+    "compilerOptions": {
+        // Path aliases
+        "baseUrl": ".",
+        "paths": {
+            "@/*": ["src/*"],
+            "@utils/*": ["src/utils/*"],
+            "@configs/*": ["src/configs/*"],
+            "@customs/*": ["src/customs/*"],
+            "@db/*": ["src/db/*"],
+            "@routes/*": ["src/routes/*"],
+            "@middleware/*": ["src/middleware/*"]
+        },
+        // File Location
+        "rootDir": "src",
+        "outDir": "dist",
+        // Emit Options
+        "sourceMap": true,              // Generate source maps
+        "removeComments": true,        // Remove comments in output
+        "noEmitOnError": true,          // Don't emit if there are errors
+        // Performance
+        "skipLibCheck": true,          // Skip type checking of declaration files
+        
+    },
+    "include": ["src/**/*.ts"],
+    "exclude": ["node_modules","dist",
+    "coverage",
+    "**/*.spec.ts",
+    "**/*.test.ts"]
+}

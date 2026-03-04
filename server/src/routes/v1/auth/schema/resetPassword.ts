@@ -1,7 +1,7 @@
 import z from "zod";
 
 export const ResetPasswordSchema = z.object({
-    userId: z.string("User id must be string").nonempty("User id must not empty"),
+    userId: z.uuid("Invalid UUID"),
     password: z.string()
                .min(8,"Password at least eight character")
                .max(50,"Password at most fifty character")
