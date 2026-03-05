@@ -21,7 +21,6 @@
         "noEmitOnError": true,          // Don't emit if there are errors
         // Performance
         "skipLibCheck": true,          // Skip type checking of declaration files
-        
     },
     "include": ["src/**/*.ts","test/**/*"],
     "exclude": ["node_modules"]
