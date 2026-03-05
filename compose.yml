@@ -1,0 +1,33 @@
+services:
+  db:
+    image: postgres:alpine
+    container_name: pg-alpine-instance
+    restart: always
+    ports:
+      - 5433:5432
+    networks:
+      - pern-net
+    volumes:
+      - postgresql_data:/var/lib/postgresql
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=postgres
+  server:
+    build: 
+      context: ./server
+      dockerfile: Dockerfile
+    ports:
+      - 3000:3000
+    networks:
+      - pern-net
+    env_file:
+      - ./server/.env.dev
+    restart: always
+    depends_on:
+      - db
+networks:
+  pern-net:
+    driver: bridge
+volumes:
+  postgresql_data:

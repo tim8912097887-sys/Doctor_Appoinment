@@ -7,23 +7,23 @@ export const logger = winston.createLogger({
     format: combine(timestamp(),errors({ stack: true }),json()),
     transports: [
         new transports.Console(),
-        new transports.File({
-            level: "error",
-            filename: "src/logs/error.log"
-        }),
-        new transports.File({
-            level: "info",
-            filename: "src/logs/combine.log"
-        }),
+        // new transports.File({
+        //     level: "error",
+        //     filename: "src/logs/error.log"
+        // }),
+        // new transports.File({
+        //     level: "info",
+        //     filename: "src/logs/combine.log"
+        // }),
     ],
-    exceptionHandlers: [
-        new transports.File({
-            filename: "src/logs/exception.log"
-        })
-    ],
-    rejectionHandlers: [
-        new transports.File({
-            filename: "src/logs/rejection.log"
-        })
-    ]
+    // exceptionHandlers: [
+    //     new transports.File({
+    //         filename: "src/logs/exception.log"
+    //     })
+    // ],
+    // rejectionHandlers: [
+    //     new transports.File({
+    //         filename: "src/logs/rejection.log"
+    //     })
+    // ]
 })

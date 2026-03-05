@@ -75,7 +75,7 @@ describe("Auth Integration Test",() => {
 
         describe("Success",() => {
 
-            it.skip('When Signup with valid data,should response with 201 statusCode and Success message', async() => {
+            it('When Signup with valid data,should response with 201 statusCode and Success message', async() => {
                 // Arrange
                 const userInfo = createUserInfo({});
                 // Act
