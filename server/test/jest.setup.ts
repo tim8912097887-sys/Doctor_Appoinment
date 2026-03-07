@@ -7,8 +7,8 @@ config({ path: '.env.test' });
 
 // Global teardown prevent race condition
 afterEach(async() => {
-    await db.delete(users);
     await db.delete(tokens);
+    await db.delete(users);
 },10000)
 afterAll(async() => {
            await dbDisconnection();
