@@ -49,7 +49,7 @@ jobs:
         env:
           # Use the local service container URL
           DATABASE_URL: postgresql://postgres:password@localhost:5432/test
-        run: pnpm exec drizzle-kit push
+        run: pnpm exec drizzle-kit push --force
       - name: Run Tests
         env:
           DATABASE_URL: postgresql://postgres:password@localhost:5432/test
