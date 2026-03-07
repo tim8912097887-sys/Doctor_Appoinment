@@ -1,5 +1,21 @@
 {
   "compilerOptions": {
+
+    // Path Alias
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@components/*": ["./src/components/*"],
+      "@pages/*": ["./src/pages/*"],
+      "@assets/*": ["./src/assets/*"],
+      "@layouts/*": ["./src/layouts/*"],
+      // "@schemas/*": ["./src/schemas/*"],
+      // "@api/*": ["./src/api/*"],
+      // "@utilities/*": ["./src/utilities/*"],
+      // "@stores/*": ["./src/stores/*"],
+      // "@mock/*": ["./src/mock/*"]
+    },
+
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
     "target": "ES2022",
     "useDefineForClassFields": true,

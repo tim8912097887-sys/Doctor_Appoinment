@@ -4,9 +4,11 @@ import Navbar from "../components/common/Navbar"
 const RootLayout = () => {
   return (
     <>
-       <Navbar/>
-       <div>
-        <Outlet/>
+       <div className="mx-4 sm:mx-[10%]">
+          <Navbar/>
+          <div>
+            <Outlet/>
+          </div>
        </div>
     </>
   )

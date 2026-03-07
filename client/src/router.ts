@@ -1,13 +1,13 @@
 import { createBrowserRouter } from "react-router";
-import Home from "./pages/Home";
-import MyProfile from "./pages/MyProfile";
-import Login from "./pages/Login";
-import About from "./pages/About";
-import Contact from "./pages/Contact";
-import MyAppointments from "./pages/MyAppointments";
-import Signup from "./pages/Signup";
-import RootLayout from "./layout/RootLayout";
-import NotFound from "./pages/NotFound";
+import Home from "@pages/Home";
+import MyProfile from "@pages/MyProfile";
+import Login from "@pages/Login";
+import About from "@pages/About";
+import Contact from "@pages/Contact";
+import MyAppointments from "@pages/MyAppointments";
+import Signup from "@pages/Signup";
+import RootLayout from "@layouts/RootLayout";
+import NotFound from "@pages/NotFound";
 
 export const router = createBrowserRouter([
     {
