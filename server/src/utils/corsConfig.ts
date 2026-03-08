@@ -8,7 +8,7 @@ export const corsOptions: CorsOptions = {
    origin: function(origin,callback) {
 
       // Allow testing tool access
-      if(env.NODE_ENV==="development" && !origin) {
+      if((env.NODE_ENV==="development" || env.NODE_ENV==="test") && !origin) {
            return callback(null,true);
       } 
 
