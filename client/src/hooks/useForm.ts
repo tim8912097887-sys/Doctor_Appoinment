@@ -46,8 +46,8 @@ const useForm = <T extends Record<string, any>>({
         setIsSubmitting(true);
         try {
             await onSubmit(value);
-        } catch (error) {
-            setErrors(pre => ({ ...pre, submit: "Submit Fail" }));
+        } catch (error: any) {
+            setErrors(pre => ({ ...pre, submit: error.message }));
         } finally {
             setIsSubmitting(false);
         }

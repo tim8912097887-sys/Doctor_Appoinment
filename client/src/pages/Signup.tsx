@@ -13,7 +13,7 @@ const Signup = () => {
   };
   const navigation = useNavigate();
   const handleSignup = async(userInfo: CreateUserType) => {
-      const data = await signup(userInfo);
+      await signup(userInfo);
       navigation("/login");
   }
   return (

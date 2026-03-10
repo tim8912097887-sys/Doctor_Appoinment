@@ -8,6 +8,7 @@ import MyAppointments from "@pages/MyAppointments";
 import Signup from "@pages/Signup";
 import RootLayout from "@layouts/RootLayout";
 import NotFound from "@pages/NotFound";
+import VerifyAccount from "@pages/VerifyAccount";
 
 export const router = createBrowserRouter([
     {
@@ -42,6 +43,10 @@ export const router = createBrowserRouter([
                         path: "signup",
                         Component: Signup
                     },
+            {
+                path: "verify",
+                Component: VerifyAccount
+            },
             {
                 path: "*",
                 Component: NotFound
