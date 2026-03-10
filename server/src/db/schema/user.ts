@@ -13,6 +13,8 @@ export const users = pgTable('users',{
     isVerified: boolean("is_verified").default(false).notNull(),
     tokenVersion: integer("token_version").default(1).notNull(),
     role: roleEnum('role').default('user').notNull(),
+    is2faActive: boolean("is_2faActive").default(false).notNull(),
+    twoFactorSecret: text("two_factor_secret"), 
     createdAt: timestamp("created_at",{ withTimezone: true,mode: 'date' }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at",{ withTimezone: true,mode: 'date' }).defaultNow().notNull()
 })

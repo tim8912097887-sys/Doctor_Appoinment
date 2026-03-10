@@ -21,6 +21,8 @@ export const findUserByEmail = async(email: string) => {
                  isVerified: users.isVerified,
                  loginAttempts: users.loginAttempts,
                  lockExpired: users.lockExpired,
+                 is2faActive: users.is2faActive,
+                 twoFactorSecret: users.twoFactorSecret,
                  tokenVersion: users.tokenVersion,
                  role: users.role
               }).from(users).where(eq(users.email,email));
@@ -30,7 +32,9 @@ export const findUserByEmail = async(email: string) => {
 export const findUserById = async(userId: string) => {
      const [existUser] = await db.select({
                  id: users.id,
-                 tokenVersion: users.tokenVersion
+                 email: users.email,
+                 tokenVersion: users.tokenVersion,
+                 twoFactorSecret: users.twoFactorSecret
               }).from(users).where(eq(users.id,userId));
     return existUser;
 }
@@ -86,4 +90,18 @@ export const findAndUpdate = async(userId: string,tokenVersion: number) => {
         )).returning({ id: users.id });
         return updatedUser;
     })
+}
+
+export const add2faSecret = async(secret: string,userId: string) => {
+    const updatedValue = await db.update(users).set({
+        twoFactorSecret: secret
+    }).where(eq(users.id,userId));
+    return updatedValue.rowCount;
+}
+
+export const enabled2fa = async(userId: string) => {
+    const updatedValue = await db.update(users).set({
+        is2faActive: true
+    }).where(eq(users.id,userId));
+    return updatedValue.rowCount;
 }

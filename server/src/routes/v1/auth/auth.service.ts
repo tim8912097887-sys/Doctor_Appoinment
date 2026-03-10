@@ -6,9 +6,11 @@ import { sendEmail } from "@utils/sendEmail.js";
 import { createRawToken, hashToken } from "@/utils/token.js";
 import { logger } from "@/utils/logger.js";
 import { comparePassword, hashPassword } from "@/utils/password.js";
-import { findAndUpdate, findUserByEmail, findUserById, transactionCreate, updateUserByEmail } from "@/db/query/auth.js";
+import { add2faSecret, enabled2fa, findAndUpdate, findUserByEmail, findUserById, transactionCreate, updateUserByEmail } from "@/db/query/auth.js";
 import { createVerificationToken, findAndVerifyToken, updatePassword } from "@/db/query/token.js";
 import { VerifyAccountType } from "./schema/verifyAccount.js";
+import { generateSecret, generateURI, verify } from "otplib";
+import qrcode from "qrcode";
 
 type UpdatedField = {
     loginAttempts: number
@@ -64,6 +66,23 @@ export default class AuthService {
                 throw new ServerError("Update failed during login process");
             } 
             logger.info(`User Login: Email: ${existUser.email} login Reset`);
+        }
+        // Verify 2fa if setup
+        if(existUser.is2faActive) {
+            if(!existUser.twoFactorSecret) {
+                logger.warn(`Login User: User ${existUser.id} haven't setup 2fa`);
+                throw new UnauthorizedError(`Setup 2fa first`);
+            }
+            if(!user.otp) {
+                logger.warn(`Login User: User ${existUser.id} didn't provide otp`);
+                throw new UnauthorizedError(`Invalid or Expired token`);
+            }
+
+            const isValid = await verify({ secret: existUser.twoFactorSecret,token: user.otp.toString() });
+            if(!isValid.valid) {
+                logger.warn(`Login User: User ${existUser.id} provide invalid or expired otp`);
+                throw new UnauthorizedError(`Invalid or Expired otp`);
+            }
         }
         logger.info(`User Login: Email: ${existUser.email} success`);
         const { password,...withOutPassword } = existUser;
@@ -226,5 +245,56 @@ export default class AuthService {
             throw new BadRequestError("Invalid or expired token");
         }
         return result;
+    }
+
+    static async setup2Fa(userId: string,tokenVersion: number) {
+       
+       const result = await findUserById(userId);
+        if(!result || result.tokenVersion !== tokenVersion) {
+            if(!result) logger.warn(`Access Token: user with ${userId} not exist`);
+            if(result.tokenVersion !== tokenVersion) logger.warn(`Access Token: user with ${userId} invalid token version`);
+            throw new BadRequestError("Invalid or expired token");
+        } 
+        const secret = generateSecret();
+        const issuer = "Doctordo";
+        const otpUrl = generateURI({
+            label: result.email,
+            issuer,
+            secret
+        })
+        const qrCodeUri = await qrcode.toDataURL(otpUrl);
+        const updatedValue = await add2faSecret(secret,userId);
+        if(!updatedValue) {
+            logger.warn(`Setup 2fa: Update fail with userId: ${userId}`);
+            throw new UnauthorizedError("Invalid or Expired token");
+        } 
+        return { qrCodeUri };
+    }
+
+    static async verify2Fa(userId: string,tokenVersion: number,otp: number) {
+       
+       const result = await findUserById(userId);
+        if(!result || result.tokenVersion !== tokenVersion) {
+            if(!result) logger.warn(`Access Token: user with ${userId} not exist`);
+            if(result.tokenVersion !== tokenVersion) logger.warn(`Access Token: user with ${userId} invalid token version`);
+            throw new BadRequestError("Invalid or expired token");
+        } 
+        
+        // Verify otp
+        if(!result.twoFactorSecret) {
+            logger.warn(`Verify 2fa: User ${userId} haven't setup 2fa`);
+            throw new UnauthorizedError(`Setup 2fa first`);
+        }
+        const isValid = await verify({ secret: result.twoFactorSecret,token: otp.toString() });
+        if(!isValid.valid) {
+            logger.warn(`Verify 2fa: User ${userId} provide invalid or expired otp`);
+            throw new UnauthorizedError(`Invalid or Expired otp`);
+        }
+        const updatedValue = await enabled2fa(userId);
+        if(!updatedValue) {
+            logger.warn(`Verify 2fa: Update fail with userId: ${userId}`);
+            throw new UnauthorizedError("Invalid or Expired token");
+        } 
+        return;
     }
 }

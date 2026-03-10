@@ -11,6 +11,7 @@ import { logger } from "@/utils/logger.js";
 import { ResetPasswordType } from "./schema/resetPassword.js";
 import { ForgotPasswordType } from "./schema/forgotPassword.js";
 import { VerifyAccountType } from "./schema/verifyAccount.js";
+import { VerifyOtpType } from "./schema/verifyOtp.js";
 
 
 interface AuthPayload extends JwtPayload {
@@ -115,6 +116,25 @@ export default class AuthController {
         const user = req.validData as ResetPasswordType;
         await AuthService.resetPassword(user.userId,user.token,user.password);
         const data = { message: "Please login with your new password" };
+        res.status(200).json(responseEnvelope({ state: "success",data }));
+    })
+
+    static setup2Fa = asyncHandler(async(req,res) => {
+  
+        if(!req.user) throw new UnauthorizedError("Unauthenticated");
+        const user = req.user as AuthPayload;
+        const { qrCodeUri } = await AuthService.setup2Fa(user.sub,user.token_version);
+        const data = { message: "Please Verify with otp",qrCodeUri };
+        res.status(201).json(responseEnvelope({ state: "success",data }));
+    })
+
+    static verify2Fa = asyncHandler(async(req,res) => {
+        if(!req.validData) throw new UnauthorizedError("Invalid Credentials");
+        const { otp } = req.validData as VerifyOtpType;
+        if(!req.user) throw new UnauthorizedError("Unauthenticated");
+        const user = req.user as AuthPayload;
+        await AuthService.verify2Fa(user.sub,user.token_version,otp);
+        const data = { message: "Please login with otp" };
         res.status(200).json(responseEnvelope({ state: "success",data }));
     })
 }

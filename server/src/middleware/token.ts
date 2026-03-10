@@ -34,3 +34,26 @@ export const refreshTokenVerify = asyncHandler((req,_res,next) => {
        req.user = decode;
        return next();
 })
+
+export const accessTokenVerify = asyncHandler((req,_res,next) => {
+       const bearerToken = req.get("Authorization");
+       if(!bearerToken || !bearerToken.split(" ")[1]) {
+        logger.warn(`Access Token Verify: Not Provide accessToken`);
+        throw new UnauthorizedError("Unauthenticated");
+       } 
+       const accessToken = bearerToken.split(" ")[1];
+       const unVerified = jwt.decode(accessToken) as AuthPayload;
+       const version = unVerified?.v?`v${unVerified?.v}`:'v1';
+       const hasVersion = version in versionVerify;
+       if(!hasVersion) {
+        logger.warn(`Access Token Verify: ${accessToken} with invalid verion: ${version}`);
+        throw new UnauthorizedError("Invalid or Expired token");
+       } 
+       const decode = versionVerify[version as Current_Verion](accessToken,false);
+       if(!decode) {
+         logger.warn(`Access Token Verify: Invalid or Expired token: ${accessToken}`);
+         throw new UnauthorizedError("Invalid or Expired token");
+       }
+       req.user = decode;
+       return next();
+})

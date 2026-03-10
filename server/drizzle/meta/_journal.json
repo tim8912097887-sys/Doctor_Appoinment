@@ -15,6 +15,13 @@
       "when": 1772491896542,
       "tag": "0001_simple_lethal_legion",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1773141231557,
+      "tag": "0002_useful_spencer_smythe",
+      "breakpoints": true
     }
   ]
 }
