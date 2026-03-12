@@ -232,7 +232,7 @@ export default class AuthService {
         if(!result || result.tokenVersion !== tokenVersion) {
             if(!result) logger.warn(`Refresh Token: user with ${userId} not exist`);
             if(result.tokenVersion !== tokenVersion) logger.warn(`Refresh Token: user with ${userId} invalid token version`);
-            throw new BadRequestError("Invalid or expired token");
+            throw new BadRequestError("Invalid or Expired token");
         }
         return result;
     }
@@ -242,7 +242,7 @@ export default class AuthService {
         const result = await findAndUpdate(userId,tokenVersion);
         if(!result) {
             logger.warn(`Logout: user with ${userId} fail to update token version`);
-            throw new BadRequestError("Invalid or expired token");
+            throw new UnauthorizedError("Invalid or Expired token");
         }
         return result;
     }

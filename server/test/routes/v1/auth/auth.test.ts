@@ -75,76 +75,7 @@ describe("Auth Integration Test",() => {
 
         describe("Success",() => {
 
-            it('When Signup with valid data,should response with 201 statusCode and Success message', async() => {
-                // Arrange
-                const userInfo = createUserInfo({});
-                // Act
-                const response = await request(app)
-                                .post("/api/v1/auth/signup")
-                                .send(userInfo);
-                const [createdUser] = await db.select({
-                   firstName: users.firstName,
-                   lastName: users.lastName,
-                   email: users.email
-                }).from(users).where(eq(users.email,userInfo.email));
-                const [token] = await db.select({
-                     id: tokens.id
-                }).from(tokens);
-                // Assertion
-                expect(response.status).toBe(201);
-                expect(response.body).toMatchObject(responseStructure({
-                    state: "success",
-                    data: {
-                        message: "Please Verify account before login"
-                    }
-                }))
-                // Check actual storage
-                expect(createdUser).toMatchObject({
-                    firstName: userInfo.firstName,
-                    lastName: userInfo.lastName,
-                    email: userInfo.email
-                })
-                expect(token).toMatchObject({
-                    id: expect.any(String)
-                });
-            },10000)
-
-            it.skip('When Signup with uppercase username,should response with 201 statusCode and check Lowercase name in database', async() => {
-                // Arrange
-                const userInfo = createUserInfo({ firstName: firstName.toUpperCase(),lastName: lastName.toUpperCase() });
-                
-                // Act
-                const response = await request(app)
-                                .post("/api/v1/auth/signup")
-                                .send(userInfo);
-                const [createdUser] = await db.select({
-                   firstName: users.firstName,
-                   lastName: users.lastName,
-                   email: users.email
-                }).from(users).where(eq(users.email,userInfo.email));
-                const [token] = await db.select({
-                     id: tokens.id
-                }).from(tokens);
-                // Assertion
-                expect(response.status).toBe(201);
-                expect(response.body).toMatchObject(responseStructure({
-                    state: "success",
-                    data: {
-                        message: "Please Verify account before login"
-                    }
-                }))
-                // Check actual storage
-                expect(createdUser).toMatchObject({
-                    firstName: userInfo.firstName.toLowerCase(),
-                    lastName: userInfo.lastName.toLowerCase(),
-                    email: userInfo.email
-                })
-                expect(token).toMatchObject({
-                    id: expect.any(String)
-                });
-            },10000)
-
-            it.skip('When Signup with uppercase email,should response with 201 statusCode and Check Lowercase email in database', async() => {
+            it('When Signup with uppercase email,should response with 201 statusCode and Check Lowercase email in database', async() => {
                 // Arrange
                 const userInfo = createUserInfo({ email: "Tim8912097887@gmail.com" });
                 // Prevent gmail rate-limit error
@@ -381,34 +312,8 @@ describe("Auth Integration Test",() => {
                 user.password = hashedPassword;
                 await db.insert(users).values({ ...user,isVerified: true });
             },10000)
-            it('When Login with valid and exist user,should response with 200 statusCode and User object and AccessToken', async() => {
-                // Arrange
-                const userInfo = loginUserInfo({});
-                // Act
-                const response = await request(app)
-                                .post("/api/v1/auth/login")
-                                .send(userInfo);
-                // Assertion
-                expect(response.status).toBe(200);
-                expect(response.body).toMatchObject(responseStructure({
-                    state: "success",
-                    data: {
-                        user: {
-                            id: expect.any(String),
-                            email: expect.any(String),
-                            isVerified: true,
-                            loginAttempts: expect.any(Number),
-                            lockExpired: null,
-                            tokenVersion: expect.any(Number),
-                            role: "user"
-                        },
-                        accessToken: expect.any(String),
-                        message: expect.any(String)
-                    }
-                }))
-            },10000)
 
-            it('When Login with Uppercase email,should response with 200 statusCode and lowercase email', async() => {
+            it('When Login valid user with Uppercase email,should response with 200 statusCode and lowercase email', async() => {
                 // Arrange
                 const userInfo = loginUserInfo({ email: "Tim8912097887@gmail.com" });
                 // Act
@@ -1018,5 +923,169 @@ describe("Verify Account",() => {
             },10000)
         })
     
+    })
+
+    describe("Logout",() => {
+            let createdUser: {
+                id: string
+                token_version: number
+                role: "doctor" | "user" | "admin"
+            };
+            // Insert User data for logout
+            beforeEach(async() => { 
+                const user = createUserInfo({});
+                const hashedPassword = await hashPassword(user.password);
+                user.password = hashedPassword;
+                [createdUser] = await db.insert(users)
+                                        .values({ ...user,isVerified: true })
+                                        .returning({
+                                            id: users.id,
+                                            token_version: users.tokenVersion,
+                                            role: users.role
+                                        })
+            },10000)
+
+            describe("Success",() => {
+                it('When successfully logout with valid refreshToken,should response with 200 statusCode and Success message', async() => {
+                    // Arrange    
+                const payload = {
+                    sub: createdUser.id,
+                    v: env.TOKEN_VERSION,
+                    token_version: createdUser.token_version,
+                    role: createdUser.role
+                }
+                const refreshToken = createToken(payload,env.REFRESH_TOKEN_SECRET,env.REFRESH_TOKEN_EXPIRED);
+                // Act
+                const response = await request(app)
+                                .delete("/api/v1/auth/logout")
+                                .set("Cookie",["refreshToken="+refreshToken]);
+                const [updatedUser] = await db.select({
+                     tokenVersion: users.tokenVersion
+                }).from(users).where(eq(users.id,createdUser.id));
+                // Assertion
+                expect(response.status).toBe(200);
+                expect(response.body).toMatchObject(responseStructure({
+                    state: "success",
+                    data: {
+                        message: expect.any(String)
+                    }
+                }))
+                expect(updatedUser.tokenVersion).toEqual(createdUser.token_version+1);
+                })
+            })
+
+            describe("Auth Error",() => {
+                it('When not send with refresh token,should response with 401 statusCode and UnAuthorized Error', async() => {
+                    
+                    // Act
+                    const response = await request(app)
+                                    .delete("/api/v1/auth/logout");
+                    // Assertion
+                    expect(response.status).toBe(401);
+                    expect(response.body).toMatchObject({
+                        state: "error",
+                        error: {
+                            status: "Unauthorized",
+                            code: 401,
+                            detail: "Unauthenticated"
+                    }})
+                })
+
+            it('When send with expired refresh token,should response with 401 statusCode and UnAuthorized Error', async() => {
+                // Arrange
+                const payload = {
+                    sub: createdUser.id,
+                    v: env.TOKEN_VERSION,
+                    token_version: createdUser.token_version,
+                    role: createdUser.role
+                }
+                const refreshToken = createToken(payload,env.REFRESH_TOKEN_SECRET,0);
+                // Act
+                const response = await request(app)
+                                .delete("/api/v1/auth/logout")
+                                .set("Cookie",["refreshToken="+refreshToken]);
+                // Assertion
+                expect(response.status).toBe(401);
+                expect(response.body).toMatchObject({
+                    state: "error",
+                    error: {
+                        status: "Unauthorized",
+                        code: 401,
+                        detail: "Invalid or Expired token"
+                }})
+            })
+
+            it('When send with invalid structure version refresh token,should response with 401 statusCode and UnAuthorized Error', async() => {
+                // Arrange
+                const payload = {
+                    sub: createdUser.id,
+                    v: 999,
+                    token_version: createdUser.token_version,
+                    role: createdUser.role
+                }
+                const refreshToken = createToken(payload,env.REFRESH_TOKEN_SECRET,env.REFRESH_TOKEN_EXPIRED);
+                // Act
+                const response = await request(app)
+                                .delete("/api/v1/auth/logout")
+                                .set("Cookie",["refreshToken="+refreshToken]);
+                // Assertion
+                expect(response.status).toBe(401);
+                expect(response.body).toMatchObject({
+                    state: "error",
+                    error: {
+                        status: "Unauthorized",
+                        code: 401,
+                        detail: "Invalid or Expired token"
+                }})
+            })
+
+            it('When send with invalid auth version refresh token,should response with 401 statusCode and UnAuthorized Error', async() => {
+                // Arrange
+                const payload = {
+                    sub: createdUser.id,
+                    v: env.TOKEN_VERSION,
+                    token_version: 100,
+                    role: createdUser.role
+                }
+                const refreshToken = createToken(payload,env.REFRESH_TOKEN_SECRET,env.REFRESH_TOKEN_EXPIRED);
+                // Act
+                const response = await request(app)
+                                .delete("/api/v1/auth/logout")
+                                .set("Cookie",["refreshToken="+refreshToken]);
+                // Assertion
+                expect(response.status).toBe(401);
+                expect(response.body).toMatchObject({
+                    state: "error",
+                    error: {
+                        status: "Unauthorized",
+                        code: 401,
+                        detail: "Invalid or Expired token"
+                }})
+            },10000)
+
+            it('When send with not exist userId refresh token,should response with 401 statusCode and UnAuthorized Error', async() => {
+                // Arrange
+                const payload = {
+                    sub: "00000000-0000-0000-0000-000000000000",
+                    v: env.TOKEN_VERSION,
+                    token_version: createdUser.token_version,
+                    role: createdUser.role
+                }
+                const refreshToken = createToken(payload,env.REFRESH_TOKEN_SECRET,env.REFRESH_TOKEN_EXPIRED);
+                // Act
+                const response = await request(app)
+                                .delete("/api/v1/auth/logout")
+                                .set("Cookie",["refreshToken="+refreshToken]);
+                // Assertion
+                expect(response.status).toBe(401);
+                expect(response.body).toMatchObject({
+                    state: "error",
+                    error: {
+                        status: "Unauthorized",
+                        code: 401,
+                        detail: "Invalid or Expired token"
+                }})
+            },10000)
+            })
     })
 })
